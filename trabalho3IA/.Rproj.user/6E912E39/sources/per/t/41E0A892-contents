@@ -1,0 +1,133 @@
+install.packages("tibble")
+install.packages("ggplot2")
+install.packages("tidyverse")
+install.packages("dplyr")
+install.packages("caret")
+install.packages("RSNNS")
+install.packages("class")
+install.packages("tree")
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(tibble)
+library(readr)
+library(RSNNS)
+library(class)
+library(tree)
+library(caret)
+
+## 1 - Devido ao tamanho da base de dados,
+## para reduzir a chance do modelo ser enviesado
+#e à divisão de 60/40 nos dados da base, será utilizado o método K-Fold Cross Validation.
+
+file <- "C:\\Users\\hiago\\OneDrive\\Área de Trabalho\\Trabalho 3 IA\\baseCompleta.csv"
+dados <- read.csv(file)
+
+# Defina o número de partições
+k <- 5
+
+# Embaralhe as linhas do dataframe
+set.seed(123)
+df_embaralhado <- dados[sample(nrow(dados)), ]
+
+# Calcule o tamanho de cada partição
+tamanho_particao <- ceiling(nrow(df_embaralhado) / k)
+
+# Crie as partições
+particoes <- split(df_embaralhado, rep(1:k, each = tamanho_particao, length.out = nrow(df_embaralhado)))
+
+# Acesse as partições individualmente
+particao1 <- particoes[[1]]
+particao2 <- particoes[[2]]
+particao3 <- particoes[[3]]
+particao4 <- particoes[[4]]
+particao5 <- particoes[[5]]
+
+#Aqui, realizarei as combinações de treinamento e teste. Fundir as partições 2, 3, 4 e 5 em uma única partição
+particaoTreinamento1 <- rbind(particoes[[2]], particoes[[3]], particoes[[4]], particoes[[5]])
+particaoTreinamento2 <- rbind(particoes[[1]], particoes[[3]], particoes[[4]], particoes[[5]])
+particaoTreinamento3 <- rbind(particoes[[1]], particoes[[2]], particoes[[4]], particoes[[5]])
+particaoTreinamento4 <- rbind(particoes[[1]], particoes[[2]], particoes[[3]], particoes[[5]])
+particaoTreinamento5 <- rbind(particoes[[1]], particoes[[2]], particoes[[3]], particoes[[4]])
+
+targetTrain1 <- particaoTreinamento1$Diagnostic
+particaoTreinamento1$Diagnostic <- NULL
+targetTest1 <- particao1$Diagnostic
+particao1$Diagnostic <- NULL
+
+targetTrain2 <- particaoTreinamento2$Diagnostic
+particaoTreinamento2$Diagnostic <- NULL
+targetTest2 <- particao2$Diagnostic
+particao2$Diagnostic <- NULL
+
+targetTrain3 <- particaoTreinamento3$Diagnostic
+particaoTreinamento3$Diagnostic <- NULL
+targetTest3 <- particao3$Diagnostic
+particao3$Diagnostic <- NULL
+
+targetTrain4 <- particaoTreinamento4$Diagnostic
+particaoTreinamento4$Diagnostic <- NULL
+targetTest4 <- particao4$Diagnostic
+particao4$Diagnostic <- NULL
+
+targetTrain5 <- particaoTreinamento5$Diagnostic
+particaoTreinamento5$Diagnostic <- NULL
+targetTest5 <- particao5$Diagnostic
+particao5$Diagnostic <- NULL
+
+## 2 - Com relação às métricas, todas seriam importantes. Acurácia, pela base poder ser considerada como "Balanceada", 
+## Precisão por ser relacionado à diagnósticos de câncer. 
+## Recall, devido ao foco na identificação da classe minoritária (1, ou Malignos) 
+
+## 3 - O baseline a ser utilizado será o Algoritmo de base minoritária, devido ao foco na classe minoritária, que seriam os malignos.
+
+## 4 -
+
+############################
+## KNN
+############################
+
+limiar <- 5
+
+x <- data.frame (train, y = as.factor(targetTrain1))
+model <- class::knn(train = train, test = test, cl = targetTrain1, k = 3)
+predsVal <- as.numeric(as.character(model))
+predVal <- ifelse(predsVal > limiar, 1, 0)
+
+############################
+## MATRIZ DE CONFUSÃO
+############################
+
+tp <- sum((targetTest1 == 1) & (predVal == 1))
+fp <- sum((targetTest1 == 0) & (predVal == 1))
+tn <- sum((targetTest1 == 0) & (predVal == 0))
+fn <- sum((targetTest1 == 1) & (predVal == 0))
+confusionMat <- matrix(c(tn, fn, fp, tp), nrow = 2, ncol = 2, dimnames = list(c("0","1"), c("0","1")))
+
+print(confusionMat)
+
+
+
+
+############################
+## MLP
+############################
+
+
+model <- mlp(	x = train, 
+              y = targetTrain, 
+              size = 5, 
+              learnFuncParams = c(0.1), 
+              maxit = 100, 
+              inputsTest = test, 
+              targetsTest = targetTest)
+predsVal <- predict(model,test)
+predVal <- ifelse (predsVal > 0.5, 1, 0)
+
+
+############################
+## DECISION TREE
+############################
+
+model <- tree(train ~ ., targetTrain)
+predVal <- predict(model, test)
