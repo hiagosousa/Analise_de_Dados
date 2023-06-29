@@ -2,7 +2,6 @@ install.packages("tibble")
 install.packages("ggplot2")
 install.packages("tidyverse")
 install.packages("dplyr")
-install.packages("caret")
 install.packages("RSNNS")
 install.packages("class")
 install.packages("tree")
@@ -14,7 +13,6 @@ library(readr)
 library(RSNNS)
 library(class)
 library(tree)
-library(caret)
 
 ## 1 - Devido ao tamanho da base de dados,
 ## para reduzir a chance do modelo ser enviesado
@@ -88,46 +86,674 @@ particao5$Diagnostic <- NULL
 ############################
 
 limiar <- 5
+KNNTFPMedio = 0
+KNNPrecisaoMedio = 0
+KNNAcuraciaMedia = 0
+KNNRecallMedio = 0
 
-x <- data.frame (train, y = as.factor(targetTrain1))
-model <- class::knn(train = train, test = test, cl = targetTrain1, k = 3)
-predsVal <- as.numeric(as.character(model))
-predVal <- ifelse(predsVal > limiar, 1, 0)
+for (i in 1:5) {
+  # Criar os nomes das variáveis dinamicamente
+  targetTest <- paste0("targetTest", i)
+  particao <- paste0("particao", i)
+  targetTrain <- paste0("targetTrain", i)
+  particaoTreinamento <- paste0("particaoTreinamento", i)
+  
+  # Criar o data frame com as variáveis adequadas
+  x <- data.frame(get(particao), y = as.factor(get(targetTrain)))
+  
+  # Executar o algoritmo KNN
+  model <- class::knn(train = get(particaoTreinamento), test = get(particao), cl = get(targetTrain), k = 3)
+  predsVal <- as.numeric(as.character(model))
+  predVal <- ifelse(predsVal > limiar, 1, 0)
+  
+  # Calcular a matriz de confusão
+  tp <- sum((get(targetTest) == 1) & (predVal == 1))
+  fp <- sum((get(targetTest) == 0) & (predVal == 1))
+  tn <- sum((get(targetTest) == 0) & (predVal == 0))
+  fn <- sum((get(targetTest) == 1) & (predVal == 0))
+  confusionMat <- matrix(c(tn, fn, fp, tp), nrow = 2, ncol = 2, dimnames = list(c("0","1"), c("0","1")))
+  
+  # Imprimir a matriz de confusão
+  print(confusionMat)
+  print(fp) #Falsos Positivos
+  print(tp) #Verdadeiros Positivos
+  print(fn) #Falsos Negativos
+  print(tn) #Verdadeiros Negativos
+  TFP = (fp/(tn+fp))
+  print(TFP) #TFP
+  
+  Precisao = (tp/(tp+fn)) #Precisão
+  print(Precisao)
+  
+  Acuracia = (tp+tn/(tp+tn+fp+fn)) #Acurácia
+  print(Acuracia)
+  
+  Recall = (tp/(tp+fn)) #Recall
+  print(Recall)
+  
+  KNNTFPMedio = KNNTFPMedio + TFP ##TFP Medio
+  KNNPrecisaoMedio = KNNPrecisaoMedio + Precisao #Precisao Media
+  KNNAcuraciaMedia = KNNAcuraciaMedia + Acuracia #Acuracia Media
+  KNNRecallMedio = KNNRecallMedio + Recall #Recall Medio
+}
+print((KNNTFPMedio)/5) #TFP Medio
+print((KNNPrecisaoMedio)/5) #Precisao Media
+print((KNNAcuraciaMedia)/5) #Acuracia Media
+print((KNNRecallMedio)/5) #Recall Medio
+
+## 5 - 
 
 ############################
-## MATRIZ DE CONFUSÃO
+## DECISION TREE
 ############################
+DTTFPMedio = 0
+DTPrecisaoMedio = 0
+DTAcuraciaMedia = 0
+DTRecallMedio = 0
+## PRIMEIRA COMBINAÇÃO/LOOP
+model <- tree(targetTrain1 ~ ., particaoTreinamento1)
+predsVal <- predict(model, particao1)
+predVal <- ifelse (predsVal > 0.5, 1, 0)
 
+# Calcular a matriz de confusão
 tp <- sum((targetTest1 == 1) & (predVal == 1))
 fp <- sum((targetTest1 == 0) & (predVal == 1))
 tn <- sum((targetTest1 == 0) & (predVal == 0))
 fn <- sum((targetTest1 == 1) & (predVal == 0))
 confusionMat <- matrix(c(tn, fn, fp, tp), nrow = 2, ncol = 2, dimnames = list(c("0","1"), c("0","1")))
 
+# Imprimir a matriz de confusão
 print(confusionMat)
+print(fp) #Falsos Positivos
+print(tp) #Verdadeiros Positivos
+print(fn) #Falsos Negativos
+print(tn) #Verdadeiros Negativos
+TFP = (fp/(tn+fp))
+print(TFP) #TFP
 
+Precisao = (tp/(tp+fn)) #Precisão
+print(Precisao)
 
+Acuracia = (tp+tn/(tp+tn+fp+fn)) #Acurácia
+print(Acuracia)
 
+Recall = (tp/(tp+fn)) #Recall
+print(Recall)
 
+DTTFPMedio = DTTFPMedio + TFP ##TFP Medio
+DTPrecisaoMedio = DTPrecisaoMedio + Precisao ##Precisao Media
+DTAcuraciaMedia = DTAcuraciaMedia + Acuracia ##Acuracia Media
+DTRecallMedio = DTRecallMedio + Recall ##Recall Medio
+
+##SEGUNDA COMBINAÇÃO/LOOP
+model <- tree(targetTrain2 ~ ., particaoTreinamento2)
+predsVal <- predict(model, particao2)
+predVal <- ifelse (predsVal > 0.5, 1, 0)
+
+# Calcular a matriz de confusão
+tp <- sum((targetTest2 == 1) & (predVal == 1))
+fp <- sum((targetTest2 == 0) & (predVal == 1))
+tn <- sum((targetTest2 == 0) & (predVal == 0))
+fn <- sum((targetTest2 == 1) & (predVal == 0))
+confusionMat <- matrix(c(tn, fn, fp, tp), nrow = 2, ncol = 2, dimnames = list(c("0","1"), c("0","1")))
+
+# Imprimir a matriz de confusão
+print(confusionMat)
+print(fp) #Falsos Positivos
+print(tp) #Verdadeiros Positivos
+print(fn) #Falsos Negativos
+print(tn) #Verdadeiros Negativos
+TFP = (fp/(tn+fp))
+print(TFP) #TFP
+
+Precisao = (tp/(tp+fn)) #Precisão
+print(Precisao)
+
+Acuracia = (tp+tn/(tp+tn+fp+fn)) #Acurácia
+print(Acuracia)
+
+Recall = (tp/(tp+fn)) #Recall
+print(Recall)
+
+DTTFPMedio = DTTFPMedio + TFP ##TFP Medio
+DTPrecisaoMedio = DTPrecisaoMedio + Precisao ##Precisao Media
+DTAcuraciaMedia = DTAcuraciaMedia + Acuracia ##Acuracia Media
+DTRecallMedio = DTRecallMedio + Recall ##Recall Medio
+
+## TERCEIRA COMBINAÇÃO/LOOP
+model <- tree(targetTrain3 ~ ., particaoTreinamento3)
+predsVal <- predict(model, particao3)
+predVal <- ifelse (predsVal > 0.5, 1, 0)
+
+# Calcular a matriz de confusão
+tp <- sum((targetTest3 == 1) & (predVal == 1))
+fp <- sum((targetTest3 == 0) & (predVal == 1))
+tn <- sum((targetTest3 == 0) & (predVal == 0))
+fn <- sum((targetTest3 == 1) & (predVal == 0))
+confusionMat <- matrix(c(tn, fn, fp, tp), nrow = 2, ncol = 2, dimnames = list(c("0","1"), c("0","1")))
+
+# Imprimir a matriz de confusão
+print(confusionMat)
+print(fp) #Falsos Positivos
+print(tp) #Verdadeiros Positivos
+print(fn) #Falsos Negativos
+print(tn) #Verdadeiros Negativos
+TFP = (fp/(tn+fp))
+print(TFP) #TFP
+
+Precisao = (tp/(tp+fn)) #Precisão
+print(Precisao)
+
+Acuracia = (tp+tn/(tp+tn+fp+fn)) #Acurácia
+print(Acuracia)
+
+Recall = (tp/(tp+fn)) #Recall
+print(Recall)
+
+DTTFPMedio = DTTFPMedio + TFP ##TFP Medio
+DTPrecisaoMedio = DTPrecisaoMedio + Precisao ##Precisao Media
+DTAcuraciaMedia = DTAcuraciaMedia + Acuracia ##Acuracia Media
+DTRecallMedio = DTRecallMedio + Recall ##Recall Medio
+
+##QUARTA COMBINAÇÃO/LOOP
+model <- tree(targetTrain4 ~ ., particaoTreinamento4)
+predsVal <- predict(model, particao4)
+predVal <- ifelse (predsVal > 0.5, 1, 0)
+
+# Calcular a matriz de confusão
+tp <- sum((targetTest4 == 1) & (predVal == 1))
+fp <- sum((targetTest4 == 0) & (predVal == 1))
+tn <- sum((targetTest4 == 0) & (predVal == 0))
+fn <- sum((targetTest4 == 1) & (predVal == 0))
+confusionMat <- matrix(c(tn, fn, fp, tp), nrow = 2, ncol = 2, dimnames = list(c("0","1"), c("0","1")))
+
+# Imprimir a matriz de confusão
+print(confusionMat)
+print(fp) #Falsos Positivos
+print(tp) #Verdadeiros Positivos
+print(fn) #Falsos Negativos
+print(tn) #Verdadeiros Negativos
+TFP = (fp/(tn+fp))
+print(TFP) #TFP
+
+Precisao = (tp/(tp+fn)) #Precisão
+print(Precisao)
+
+Acuracia = (tp+tn/(tp+tn+fp+fn)) #Acurácia
+print(Acuracia)
+
+Recall = (tp/(tp+fn)) #Recall
+print(Recall)
+
+DTTFPMedio = DTTFPMedio + TFP ##TFP Medio
+DTPrecisaoMedio = DTPrecisaoMedio + Precisao ##Precisao Media
+DTAcuraciaMedia = DTAcuraciaMedia + Acuracia ##Acuracia Media
+DTRecallMedio = DTRecallMedio + Recall ##Recall Medio
+
+##QUINTA COMBINAÇÃO/LOOP
+model <- tree(targetTrain5 ~ ., particaoTreinamento5)
+predsVal <- predict(model, particao5)
+predVal <- ifelse (predsVal > 0.5, 1, 0)
+
+# Calcular a matriz de confusão
+tp <- sum((targetTest5 == 1) & (predVal == 1))
+fp <- sum((targetTest5 == 0) & (predVal == 1))
+tn <- sum((targetTest5 == 0) & (predVal == 0))
+fn <- sum((targetTest5 == 1) & (predVal == 0))
+confusionMat <- matrix(c(tn, fn, fp, tp), nrow = 2, ncol = 2, dimnames = list(c("0","1"), c("0","1")))
+
+# Imprimir a matriz de confusão
+print(confusionMat)
+print(fp) #Falsos Positivos
+print(tp) #Verdadeiros Positivos
+print(fn) #Falsos Negativos
+print(tn) #Verdadeiros Negativos
+TFP = (fp/(tn+fp))
+print(TFP) #TFP
+
+Precisao = (tp/(tp+fn)) #Precisão
+print(Precisao)
+
+Acuracia = (tp+tn/(tp+tn+fp+fn)) #Acurácia
+print(Acuracia)
+
+Recall = (tp/(tp+fn)) #Recall
+print(Recall)
+
+DTTFPMedio = DTTFPMedio + TFP 
+print((DTTFPMedio)/5)##TFP Medio
+DTPrecisaoMedio = DTPrecisaoMedio + Precisao 
+print((DTPrecisaoMedio)/5)##Precisao Media
+DTAcuraciaMedia = DTAcuraciaMedia + Acuracia 
+print((DTAcuraciaMedia)/5)##Acuracia Media
+DTRecallMedio = DTRecallMedio + Recall 
+print((DTRecallMedio)/5)##Recall Medio
+
+## 6 - 
 ############################
 ## MLP
 ############################
 
+MLPTFPMedio = 0
+MLPPrecisaoMedio = 0
+MLPAcuraciaMedia = 0
+MLPRecallMedio = 0
 
-model <- mlp(	x = train, 
-              y = targetTrain, 
+##PRIMEIRA COMBINAÇÃO/LOOP
+model <- mlp(	x = particaoTreinamento1, 
+              y = targetTrain1, 
               size = 5, 
               learnFuncParams = c(0.1), 
               maxit = 100, 
-              inputsTest = test, 
-              targetsTest = targetTest)
-predsVal <- predict(model,test)
+              inputsTest = particao1, 
+              targetsTest = targetTest1)
+predsVal <- predict(model,particao1)
 predVal <- ifelse (predsVal > 0.5, 1, 0)
 
+# Calcular a matriz de confusão
+tp <- sum((targetTest1 == 1) & (predVal == 1))
+fp <- sum((targetTest1 == 0) & (predVal == 1))
+tn <- sum((targetTest1 == 0) & (predVal == 0))
+fn <- sum((targetTest1 == 1) & (predVal == 0))
+confusionMat <- matrix(c(tn, fn, fp, tp), nrow = 2, ncol = 2, dimnames = list(c("0","1"), c("0","1")))
 
-############################
-## DECISION TREE
-############################
+# Imprimir a matriz de confusão
+print(confusionMat)
+print(fp) #Falsos Positivos
+print(tp) #Verdadeiros Positivos
+print(fn) #Falsos Negativos
+print(tn) #Verdadeiros Negativos
+TFP = (fp/(tn+fp))
+print(TFP) #TFP
 
-model <- tree(train ~ ., targetTrain)
-predVal <- predict(model, test)
+Precisao = (tp/(tp+fn)) #Precisão
+print(Precisao)
+
+Acuracia = (tp+tn/(tp+tn+fp+fn)) #Acurácia
+print(Acuracia)
+
+Recall = (tp/(tp+fn)) #Recall
+print(Recall)
+
+MLPTFPMedio = MLPTFPMedio + TFP ##TFP Medio
+MLPPrecisaoMedio = MLPPrecisaoMedio + Precisao ##Precisao Media
+MLPAcuraciaMedia = MLPAcuraciaMedia + Acuracia ##Acuracia Media
+MLPRecallMedio = MLPRecallMedio + Recall ##Recall Medio
+
+##SEGUNDA COMBINAÇÃO/LOOP
+model <- mlp(	x = particaoTreinamento2, 
+              y = targetTrain2, 
+              size = 5, 
+              learnFuncParams = c(0.1), 
+              maxit = 100, 
+              inputsTest = particao2, 
+              targetsTest = targetTest2)
+predsVal <- predict(model,particao2)
+predVal <- ifelse (predsVal > 0.5, 1, 0)
+
+# Calcular a matriz de confusão
+tp <- sum((targetTest2 == 1) & (predVal == 1))
+fp <- sum((targetTest2 == 0) & (predVal == 1))
+tn <- sum((targetTest2 == 0) & (predVal == 0))
+fn <- sum((targetTest2 == 1) & (predVal == 0))
+confusionMat <- matrix(c(tn, fn, fp, tp), nrow = 2, ncol = 2, dimnames = list(c("0","1"), c("0","1")))
+
+# Imprimir a matriz de confusão
+print(confusionMat)
+print(fp) #Falsos Positivos
+print(tp) #Verdadeiros Positivos
+print(fn) #Falsos Negativos
+print(tn) #Verdadeiros Negativos
+TFP = (fp/(tn+fp))
+print(TFP) #TFP
+
+Precisao = (tp/(tp+fn)) #Precisão
+print(Precisao)
+
+Acuracia = (tp+tn/(tp+tn+fp+fn)) #Acurácia
+print(Acuracia)
+
+Recall = (tp/(tp+fn)) #Recall
+print(Recall)
+
+MLPTFPMedio = MLPTFPMedio + TFP ##TFP Medio
+MLPPrecisaoMedio = MLPPrecisaoMedio + Precisao ##Precisao Media
+MLPAcuraciaMedia = MLPAcuraciaMedia + Acuracia ##Acuracia Media
+MLPRecallMedio = MLPRecallMedio + Recall ##Recall Medio
+
+##TERCEIRA COMBINAÇÃO/LOOP
+model <- mlp(	x = particaoTreinamento3, 
+              y = targetTrain3, 
+              size = 5, 
+              learnFuncParams = c(0.1), 
+              maxit = 100, 
+              inputsTest = particao3, 
+              targetsTest = targetTest3)
+predsVal <- predict(model,particao3)
+predVal <- ifelse (predsVal > 0.5, 1, 0)
+
+# Calcular a matriz de confusão
+tp <- sum((targetTest3 == 1) & (predVal == 1))
+fp <- sum((targetTest3 == 0) & (predVal == 1))
+tn <- sum((targetTest3 == 0) & (predVal == 0))
+fn <- sum((targetTest3 == 1) & (predVal == 0))
+confusionMat <- matrix(c(tn, fn, fp, tp), nrow = 2, ncol = 2, dimnames = list(c("0","1"), c("0","1")))
+
+# Imprimir a matriz de confusão
+print(confusionMat)
+print(fp) #Falsos Positivos
+print(tp) #Verdadeiros Positivos
+print(fn) #Falsos Negativos
+print(tn) #Verdadeiros Negativos
+TFP = (fp/(tn+fp))
+print(TFP) #TFP
+
+Precisao = (tp/(tp+fn)) #Precisão
+print(Precisao)
+
+Acuracia = (tp+tn/(tp+tn+fp+fn)) #Acurácia
+print(Acuracia)
+
+Recall = (tp/(tp+fn)) #Recall
+print(Recall)
+
+MLPTFPMedio = MLPTFPMedio + TFP ##TFP Medio
+MLPPrecisaoMedio = MLPPrecisaoMedio + Precisao ##Precisao Media
+MLPAcuraciaMedia = MLPAcuraciaMedia + Acuracia ##Acuracia Media
+MLPRecallMedio = MLPRecallMedio + Recall ##Recall Medio
+
+##QUARTA COMBINAÇÃO/LOOP
+model <- mlp(	x = particaoTreinamento4, 
+              y = targetTrain4, 
+              size = 5, 
+              learnFuncParams = c(0.1), 
+              maxit = 100, 
+              inputsTest = particao4, 
+              targetsTest = targetTest4)
+predsVal <- predict(model,particao4)
+predVal <- ifelse (predsVal > 0.5, 1, 0)
+
+# Calcular a matriz de confusão
+tp <- sum((targetTest4 == 1) & (predVal == 1))
+fp <- sum((targetTest4 == 0) & (predVal == 1))
+tn <- sum((targetTest4 == 0) & (predVal == 0))
+fn <- sum((targetTest4 == 1) & (predVal == 0))
+confusionMat <- matrix(c(tn, fn, fp, tp), nrow = 2, ncol = 2, dimnames = list(c("0","1"), c("0","1")))
+
+# Imprimir a matriz de confusão
+print(confusionMat)
+print(fp) #Falsos Positivos
+print(tp) #Verdadeiros Positivos
+print(fn) #Falsos Negativos
+print(tn) #Verdadeiros Negativos
+TFP = (fp/(tn+fp))
+print(TFP) #TFP
+
+Precisao = (tp/(tp+fn)) #Precisão
+print(Precisao)
+
+Acuracia = (tp+tn/(tp+tn+fp+fn)) #Acurácia
+print(Acuracia)
+
+Recall = (tp/(tp+fn)) #Recall
+print(Recall)
+
+MLPTFPMedio = MLPTFPMedio + TFP ##TFP Medio
+MLPPrecisaoMedio = MLPPrecisaoMedio + Precisao ##Precisao Media
+MLPAcuraciaMedia = MLPAcuraciaMedia + Acuracia ##Acuracia Media
+MLPRecallMedio = MLPRecallMedio + Recall ##Recall Medio
+
+##QUINTA COMBINAÇÃO/LOOP
+model <- mlp(	x = particaoTreinamento5, 
+              y = targetTrain5, 
+              size = 5, 
+              learnFuncParams = c(0.1), 
+              maxit = 100, 
+              inputsTest = particao5, 
+              targetsTest = targetTest5)
+predsVal <- predict(model,particao5)
+predVal <- ifelse (predsVal > 0.5, 1, 0)
+
+# Calcular a matriz de confusão
+tp <- sum((targetTest5 == 1) & (predVal == 1))
+fp <- sum((targetTest5 == 0) & (predVal == 1))
+tn <- sum((targetTest5 == 0) & (predVal == 0))
+fn <- sum((targetTest5 == 1) & (predVal == 0))
+confusionMat <- matrix(c(tn, fn, fp, tp), nrow = 2, ncol = 2, dimnames = list(c("0","1"), c("0","1")))
+
+# Imprimir a matriz de confusão
+print(confusionMat)
+print(fp) #Falsos Positivos
+print(tp) #Verdadeiros Positivos
+print(fn) #Falsos Negativos
+print(tn) #Verdadeiros Negativos
+TFP = (fp/(tn+fp))
+print(TFP) #TFP
+
+Precisao = (tp/(tp+fn)) #Precisão
+print(Precisao)
+
+Acuracia = (tp+tn/(tp+tn+fp+fn)) #Acurácia
+print(Acuracia)
+
+Recall = (tp/(tp+fn)) #Recall
+print(Recall)
+
+MLPTFPMedio = MLPTFPMedio + TFP ##TFP Medio
+MLPPrecisaoMedio = MLPPrecisaoMedio + Precisao ##Precisao Media
+MLPAcuraciaMedia = MLPAcuraciaMedia + Acuracia ##Acuracia Media
+MLPRecallMedio = MLPRecallMedio + Recall ##Recall Medio
+
+print((MLPTFPMedio)/5) ##TFP Medio
+print((MLPPrecisaoMedio)/5) ##Precisao Media
+print((MLPAcuraciaMedia)/5) ##Acuracia Media
+print((MLPRecallMedio)/5) ##Recall Medio
+
+## 7 - Aplicando o baseline de classe minoritária:
+
+BTFPMedio = 0
+BPrecisaoMedio = 0
+BAcuraciaMedia = 0
+BRecallMedio = 0
+
+##Primeira combinação/loop
+baselineMinoritaria <- rep(1, nrow(dados))
+
+tp <- sum((targetTest1 == 1) & (baselineMinoritaria == 1))
+fp <- sum((targetTest1 == 0) & (baselineMinoritaria == 1))
+tn <- sum((targetTest1 == 0) & (baselineMinoritaria == 0))
+fn <- sum((targetTest1 == 1) & (baselineMinoritaria == 0))
+confusionMat <- matrix(c(tn, fn, fp, tp), nrow = 2, ncol = 2, dimnames = list(c("0","1"), c("0","1")))
+
+print(confusionMat)
+print(fp) #Falsos Positivos
+print(tp) #Verdadeiros Positivos
+print(fn) #Falsos Negativos
+print(tn) #Verdadeiros Negativos
+TFPBaseline = (fp/(tn+fp))
+print(TFPBaseline) #TFP
+
+PrecisaoBaseline = (tp/(tp+fn)) #Precisão
+print(PrecisaoBaseline)
+
+AcuraciaBaseline = ((tp+tn)/(tp+tn+fp+fn)) #Acurácia
+print(AcuraciaBaseline)
+
+RecallBaseline = (tp/(tp+fn)) #Recall
+print(RecallBaseline)
+
+BTFPMedio = BTFPMedio + TFP ##TFP Medio
+BPrecisaoMedio = BPrecisaoMedio + Precisao ##Precisao Media
+BAcuraciaMedia = BAcuraciaMedia + Acuracia ##Acuracia Media
+BRecallMedio = BRecallMedio + Recall ##Recall Medio
+
+##Segunda combinação/loop
+baselineMinoritaria <- rep(1, nrow(dados))
+
+tp <- sum((targetTest2 == 1) & (baselineMinoritaria == 1))
+fp <- sum((targetTest2 == 0) & (baselineMinoritaria == 1))
+tn <- sum((targetTest2 == 0) & (baselineMinoritaria == 0))
+fn <- sum((targetTest2 == 1) & (baselineMinoritaria == 0))
+confusionMat <- matrix(c(tn, fn, fp, tp), nrow = 2, ncol = 2, dimnames = list(c("0","1"), c("0","1")))
+
+print(confusionMat)
+print(fp) #Falsos Positivos
+print(tp) #Verdadeiros Positivos
+print(fn) #Falsos Negativos
+print(tn) #Verdadeiros Negativos
+TFPBaseline = (fp/(tn+fp))
+print(TFPBaseline) #TFP
+
+PrecisaoBaseline = (tp/(tp+fn)) #Precisão
+print(PrecisaoBaseline)
+
+AcuraciaBaseline = ((tp+tn)/(tp+tn+fp+fn)) #Acurácia
+print(AcuraciaBaseline)
+
+RecallBaseline = (tp/(tp+fn)) #Recall
+print(RecallBaseline)
+
+BTFPMedio = BTFPMedio + TFP ##TFP Medio
+BPrecisaoMedio = BPrecisaoMedio + Precisao ##Precisao Media
+BAcuraciaMedia = BAcuraciaMedia + Acuracia ##Acuracia Media
+BRecallMedio = BRecallMedio + Recall ##Recall Medio
+
+##Terceira combinação/loop
+baselineMinoritaria <- rep(1, nrow(dados))
+
+tp <- sum((targetTest3 == 1) & (baselineMinoritaria == 1))
+fp <- sum((targetTest3 == 0) & (baselineMinoritaria == 1))
+tn <- sum((targetTest3 == 0) & (baselineMinoritaria == 0))
+fn <- sum((targetTest3 == 1) & (baselineMinoritaria == 0))
+confusionMat <- matrix(c(tn, fn, fp, tp), nrow = 2, ncol = 2, dimnames = list(c("0","1"), c("0","1")))
+
+print(confusionMat)
+print(fp) #Falsos Positivos
+print(tp) #Verdadeiros Positivos
+print(fn) #Falsos Negativos
+print(tn) #Verdadeiros Negativos
+TFPBaseline = (fp/(tn+fp))
+print(TFPBaseline) #TFP
+
+PrecisaoBaseline = (tp/(tp+fn)) #Precisão
+print(PrecisaoBaseline)
+
+AcuraciaBaseline = ((tp+tn)/(tp+tn+fp+fn)) #Acurácia
+print(AcuraciaBaseline)
+
+RecallBaseline = (tp/(tp+fn)) #Recall
+print(RecallBaseline)
+
+BTFPMedio = BTFPMedio + TFP ##TFP Medio
+BPrecisaoMedio = BPrecisaoMedio + Precisao ##Precisao Media
+BAcuraciaMedia = BAcuraciaMedia + Acuracia ##Acuracia Media
+BRecallMedio = BRecallMedio + Recall ##Recall Medio
+
+##Quarta combinação/loop
+baselineMinoritaria <- rep(1, nrow(dados))
+
+tp <- sum((targetTest4 == 1) & (baselineMinoritaria == 1))
+fp <- sum((targetTest4 == 0) & (baselineMinoritaria == 1))
+tn <- sum((targetTest4 == 0) & (baselineMinoritaria == 0))
+fn <- sum((targetTest4 == 1) & (baselineMinoritaria == 0))
+confusionMat <- matrix(c(tn, fn, fp, tp), nrow = 2, ncol = 2, dimnames = list(c("0","1"), c("0","1")))
+
+print(confusionMat)
+print(fp) #Falsos Positivos
+print(tp) #Verdadeiros Positivos
+print(fn) #Falsos Negativos
+print(tn) #Verdadeiros Negativos
+TFPBaseline = (fp/(tn+fp))
+print(TFPBaseline) #TFP
+
+PrecisaoBaseline = (tp/(tp+fn)) #Precisão
+print(PrecisaoBaseline)
+
+AcuraciaBaseline = ((tp+tn)/(tp+tn+fp+fn)) #Acurácia
+print(AcuraciaBaseline)
+
+RecallBaseline = (tp/(tp+fn)) #Recall
+print(RecallBaseline)
+
+BTFPMedio = BTFPMedio + TFP ##TFP Medio
+BPrecisaoMedio = BPrecisaoMedio + Precisao ##Precisao Media
+BAcuraciaMedia = BAcuraciaMedia + Acuracia ##Acuracia Media
+BRecallMedio = BRecallMedio + Recall ##Recall Medio
+
+##Quinta combinação/loop
+baselineMinoritaria <- rep(1, nrow(dados))
+
+tp <- sum((targetTest5 == 1) & (baselineMinoritaria == 1))
+fp <- sum((targetTest5 == 0) & (baselineMinoritaria == 1))
+tn <- sum((targetTest5 == 0) & (baselineMinoritaria == 0))
+fn <- sum((targetTest5 == 1) & (baselineMinoritaria == 0))
+confusionMat <- matrix(c(tn, fn, fp, tp), nrow = 2, ncol = 2, dimnames = list(c("0","1"), c("0","1")))
+
+print(confusionMat)
+print(fp) #Falsos Positivos
+print(tp) #Verdadeiros Positivos
+print(fn) #Falsos Negativos
+print(tn) #Verdadeiros Negativos
+TFPBaseline = (fp/(tn+fp))
+print(TFPBaseline) #TFP
+
+PrecisaoBaseline = (tp/(tp+fn)) #Precisão
+print(PrecisaoBaseline)
+
+AcuraciaBaseline = ((tp+tn)/(tp+tn+fp+fn)) #Acurácia
+print(AcuraciaBaseline)
+
+RecallBaseline = (tp/(tp+fn)) #Recall
+print(RecallBaseline)
+
+BTFPMedio = BTFPMedio + TFP ##TFP Medio
+BPrecisaoMedio = BPrecisaoMedio + Precisao ##Precisao Media
+BAcuraciaMedia = BAcuraciaMedia + Acuracia ##Acuracia Media
+BRecallMedio = BRecallMedio + Recall ##Recall Medio
+
+print((BTFPMedio)/5) #TFP Médio (Baseline)
+print((BPrecisaoMedio)/5) #Precisão Média (Baseline)
+print((BAcuraciaMedia)/5) #Acurácia Média (Baseline)
+print((BRecallMedio)/5) #Recall Médio (Baseline)
+
+## 8 - Comparando os resultados obtidos:
+##---
+##KNN
+##---
+print((KNNTFPMedio/5)) #TFP Médio (KNN)
+print((KNNPrecisaoMedio/5)) #Precisão Média (KNN)
+print((KNNAcuraciaMedia/5)) #Acuracia Média (KNN)
+print((KNNRecallMedio)/5) #Recall Médio (KNN)
+
+##---
+##Decision Tree
+##---
+print((DTTFPMedio)/5) #TFP Médio (Decision Tree)
+print((DTPrecisaoMedio)/5) #Precisão Média (Decision Tree)
+print((DTAcuraciaMedia)/5) #Acuracia Média (Decision Tree)
+print((DTRecallMedio)/5) #Recall Médio (Decision Tree)
+
+##---
+##MLP
+##---
+print((MLPTFPMedio)/5) #TFP Médio (MLP)
+print((MLPPrecisaoMedio)/5) #Precisão Média (MLP)
+print((MLPAcuraciaMedia)/5) #Acuracia Média (MLP)
+print((MLPRecallMedio)/5) #Recall Médio (MLP)
+
+##---
+##Algoritmo Baseline
+##---
+print((BTFPMedio)/5) #TFP Médio (Baseline)
+print((BPrecisaoMedio)/5) #Precisão Média (Baseline)
+print((BAcuraciaMedia)/5) #Acurácia Média (Baseline)
+print((BRecallMedio)/5) #Recall Médio (Baseline)
+
+#O maior (e mais plausível) TFP médio foi o da Decision Tree, enquanto os menores foram zero.
+#A maior (e mais plausível) Precisão média foi a Decision Tree, enquanto os menores foram zero.
+#As maiores (e mais plausíveis) Acurácias médias foram as da MLP e KNN, enquanto os menores foram zero.
+#O maior (e mais plausível) Recall médio foi o da Decision Tree, enquanto os menores foram zero.
+
+#A árvore de decisão foi a que obteve o melhor resultado com relação à recall, precisão e TFP, portanto seria o melhor algoritmo para ser utilizado nessa base, apesar da acurácia.
+#O KNN e MLP apresentaram zeros em todos exceto a acurácia Média.
+
